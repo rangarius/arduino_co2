@@ -2,14 +2,16 @@
 #include <Thread.h>
 #include <ThreadController.h>
 #include "BaseHeader.h"
-
+#include <ArduinoMqttClient.h>
 #include "EnhancedThread.h"
 #include "WrapperMeasure.h"
 #include "LoggerInit.h"
 #include "WrapperWiFi.h"
 #include "WrapperWebconfig.h"
+#define MQTT_MAX_PACKET_SIZE 512
 WiFiClient espClient;
-PubSubClient client(espClient);
+
+MqttClient client(espClient);
 
 char* mqtt_server;
 char* mqtt_client;
@@ -17,8 +19,9 @@ char* topic;
 int mqtt_port;
  int wifi_status;
 #define LED LED_BUILTIN // LED in NodeMCU at pin GPIO16 (D0) or LED_BUILTIN @Lolin32.#
-#define ATMOCO2 397.1
+#define ATMOCO2 397.1 
 int ledState = LOW;
+
 
 LoggerInit loggerInit;
 
@@ -65,12 +68,12 @@ void measureStep() {
 
 void connectionStep() {
   while(!client.connected()) {
-    if(client.connect(mqtt_client)) {
+    if(client.connect(mqtt_server, mqtt_port)) {
       threadController.remove(&connectionThread);
       writeResults();
       threadController.add(&writingThread);
       };
-    //client.loop();
+    client.poll();
     
     }
   
@@ -81,7 +84,7 @@ void writeResults() {
   Log.debug("Wifi Status: %i", wifi_status);
 if (wifi_status) {
   while(!client.connected()) {
-    client.connect(mqtt_client);
+    client.connect(mqtt_server, mqtt_port);
      Log.info("Connected: %b", client.connected());
      delay(1000);
       if(!client.connected()) {
@@ -91,26 +94,31 @@ if (wifi_status) {
             float co2 = measure.getCO2();
     float temp = measure.getTemp();
     float hum = measure.getHum();
+    
     Log.debug("co2: %f", co2);
       Log.debug("temp: %f", temp);
         Log.debug("hum: %f", hum);
               //client.loop();
                  // JSON OBJECT Erstellen und mit Messwerten laden
-      StaticJsonBuffer<300> JSONbuffer;
-      JsonObject& JSONencoder = JSONbuffer.createObject();
-      JSONencoder["co2"] = (co2 > 0) ? co2 : 0;
-      JSONencoder["temp"] = (temp < 1000) ? temp : 0;
-      JSONencoder["hum"] = (hum > 0) ? hum : 0;
-      char JSONmessageBuffer[100];
-      JSONencoder.printTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
+      StaticJsonDocument<256> doc;
+        
+      doc["co2"] = (co2 > 0) ? co2 : 0;
+      doc["temp"] = (temp < 1000) ? temp : 0;
+      doc["hum"] = (hum > 0) ? hum : 0;
+
       Log.info("Temp: %f C", temp);
        Log.info("Hum: %f %", hum);
       Log.info("CO2: %f", co2);
-      Log.info("Topic %s", topic);
-      if(client.publish(topic, JSONmessageBuffer)) {
-        } else {
-          Log.info("Error while publish");
-          };
+      Log.info("Topic %s", topic); 
+
+      client.beginMessage(topic,measureJson(doc), true);
+      serializeJson(doc, client);
+      if(client.endMessage()) {
+        Log.info("published");
+        }
+      else {
+        Log.info("publish went wrong");
+        }
      }
   }
 }
@@ -226,15 +234,14 @@ void setup(void) {
   
   
   wifi.begin();
-  
+  client.setKeepAliveInterval(20000);
+  client.setId(mqtt_client);
   #ifdef CONFIG_ENABLE_WEBCONFIG
     webServer = WrapperWebconfig();
     webServer.begin();
     Log.info("Starting WebServer");
   #endif
-  
-  client.setServer(mqtt_server, mqtt_port);
-  client.setBufferSize(512);  
+    
   threadController.run();
   pinMode(LED, OUTPUT);   // LED pin as output.
   Log.info("HEAP=%i", ESP.getFreeHeap());
