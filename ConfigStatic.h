@@ -37,6 +37,9 @@
 #define CONFIG_MQTT_TOPIC "/nodes/B6/00/001"
 
 #define CONFIG_WIFI_SSID
+
+#define CONFIG_CO2_RZERO 0
+#define CONFIG_CO2_RESISTOR 10
 /*------------------------------------------------*/
 /*Main configuration*/
 //You can leave it empty and override it via the web interface on port 80

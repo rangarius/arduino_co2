@@ -45,10 +45,17 @@ typedef struct {
 } ConfigPort;
 
 typedef struct {
+  float rzero;
+  uint16_t resistor;
+  char spacer[32];
+  } ConfigCo2;
+
+typedef struct {
   uint8_t version;
   ConfigWifi wifi;
   ConfigMqtt mqtt;
   ConfigPort ports;
+  ConfigCo2 co2;
 } ConfigStruct;
 
 #endif

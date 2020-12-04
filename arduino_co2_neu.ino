@@ -8,6 +8,11 @@
 #include "LoggerInit.h"
 #include "WrapperWiFi.h"
 #include "WrapperWebconfig.h"
+#include "WrapperOTA.h"
+#include "MQ135.h"
+
+MQ135 mq = MQ135(A0);
+
 #define MQTT_MAX_PACKET_SIZE 512
 WiFiClient espClient;
 
@@ -22,10 +27,18 @@ int mqtt_port;
 #define ATMOCO2 397.1 
 int ledState = LOW;
 
-
+    const int numReadings = 10;
+    int readIndex = 0;
+    int readings[numReadings];
+    float total;
+float averageCO2;
+int _gPort;
+int _rPort;
+int _bPort;
 LoggerInit loggerInit;
 
 WrapperWiFi wifi;
+WrapperOTA ota;
 
 WrapperMeasure measure;
 
@@ -33,16 +46,13 @@ WrapperMeasure measure;
   WrapperWebconfig webServer;
 #endif
 
-Mode activeMode;
-boolean autoswitch;
-
 ThreadController threadController = ThreadController();
 Thread statusThread = Thread();
 EnhancedThread measureThread = EnhancedThread();
 EnhancedThread connectionThread = EnhancedThread();
-EnhancedThread resetThread = EnhancedThread();
+EnhancedThread configThread = EnhancedThread();
 EnhancedThread writingThread = EnhancedThread();
-EnhancedThread calibrationThread = EnhancedThread();
+
 
 void statusInfo(void) {
   if (ledState == LOW) {
@@ -55,29 +65,78 @@ void statusInfo(void) {
 }
 
 void measureStep() {
-  float co2 = measure.getCO2();
- 
-  if (co2 < ATMOCO2) {
-    Log.verbose("CO2: %f", co2);
-    } 
-  else {
-    Log.debug("CO2: %f", co2);
-    delay(1000);
+      float temp = measure.getTemp();
+    float hum = measure.getHum();
+    if(isnan(hum)) hum = 50;
+    if(isnan(temp)) temp = 22;
+  float co2 = mq.getCorrectedPPM(temp, hum);
+  
+  
+        Log.debug("temp: %f", temp);
+        Log.debug("hum: %f", hum);
+        
+
+
+    total = total - readings[readIndex];
+    readings[readIndex] = (int)co2; 
+    Log.debug("Reading %i", readings[readIndex]);
+    total = total + readings[readIndex]; 
+    readIndex = readIndex + 1; 
+    if (readIndex >= numReadings) {
+      readIndex = 0;
     }
+    averageCO2 = total / numReadings;
+      //color = measure.setColor(co2);
+  float _ppm = averageCO2;
+
+
+    float LEDblue = 0;
+    float LEDred = (1024 * ((_ppm - 500) / 500)) / 3;
+    float LEDgreen = 1024 - ((1024 * ((_ppm - 500) / 500)) / 3);
+    
+    if (LEDred > 1024) LEDred = 1024;
+    if (LEDred < 0) LEDred = 0; 
+    if (LEDgreen > 1024)LEDgreen = 1024;
+    if (LEDgreen < 0) LEDgreen = 0;
+    analogWrite(_gPort, LEDgreen);
+    analogWrite(_rPort, LEDred);
+    analogWrite(_bPort, LEDblue);
+
+    Log.debug("CO2: %f",averageCO2);
 }
 
-void connectionStep() {
-  while(!client.connected()) {
-    if(client.connect(mqtt_server, mqtt_port)) {
-      threadController.remove(&connectionThread);
-      writeResults();
-      threadController.add(&writingThread);
-      };
-    client.poll();
+float calibrate(int rPort, int gPort, int bPort) {
+    int LEDblue = 1024;
+    int LEDred = 0;
+    int LEDgreen = 0;
+
     
-    }
-  
+    analogWrite(gPort, LEDgreen);
+    analogWrite(rPort, LEDred);
+    analogWrite(bPort, LEDblue);
+          float temp = measure.getTemp();
+    float hum = measure.getHum();
+    float rzero;
+    int lnumReadings = 10;
+    int lreadIndex = 0;
+    int lreadings[lnumReadings];
+    float ltotal;
+    
+    for(int i = 0; i <= 480; i++) {
+          ltotal = ltotal - lreadings[lreadIndex];
+          lreadings[lreadIndex] = mq.getCorrectedRZero(temp, hum); 
+          ltotal = ltotal + lreadings[lreadIndex]; 
+          lreadIndex = lreadIndex + 1; 
+          if (lreadIndex >= lnumReadings) {
+            lreadIndex = 0;
+          }
+          rzero = ltotal / lnumReadings;
+      rzero = mq.getCorrectedRZero(temp, hum);
+      delay(100);
+      }
+    return rzero;
   }
+
 
 void writeResults() {
   wifi_status = wifi.status();
@@ -91,24 +150,24 @@ if (wifi_status) {
         break;
        }
         else {
-            float co2 = measure.getCO2();
+           
     float temp = measure.getTemp();
     float hum = measure.getHum();
     
-    Log.debug("co2: %f", co2);
+    Log.debug("co2: %f", averageCO2);
       Log.debug("temp: %f", temp);
         Log.debug("hum: %f", hum);
               //client.loop();
                  // JSON OBJECT Erstellen und mit Messwerten laden
       StaticJsonDocument<256> doc;
         
-      doc["co2"] = (co2 > 0) ? co2 : 0;
+      doc["co2"] = (averageCO2 > 0) ? averageCO2 : 0;
       doc["temp"] = (temp < 1000) ? temp : 0;
       doc["hum"] = (hum > 0) ? hum : 0;
 
       Log.info("Temp: %f C", temp);
        Log.info("Hum: %f %", hum);
-      Log.info("CO2: %f", co2);
+      Log.info("CO2: %f", averageCO2);
       Log.info("Topic %s", topic); 
 
       client.beginMessage(topic,measureJson(doc), true);
@@ -141,6 +200,8 @@ void initConfig(void) {
   uint16_t gPort;
   uint16_t bPort;
   uint16_t dataPort;
+  uint16_t resistor;
+  float rzero;
 
 
   #ifdef CONFIG_ENABLE_WEBCONFIG
@@ -159,6 +220,8 @@ void initConfig(void) {
     mqtt_server = cfg->mqtt.mqtt_server;
     mqtt_client = cfg->mqtt.mqtt_client;
     mqtt_port = cfg->mqtt.mqtt_port;
+    rzero = cfg->co2.rzero;
+    resistor = cfg->co2.resistor;
     topic = cfg->mqtt.topic;
     Log.info("CFG=%s", "EEPROM config loaded");
     Config::logConfig();
@@ -181,6 +244,8 @@ void initConfig(void) {
     mqtt_client = CONFIG_MQTT_MQTT_CLIENT;
     mqtt_port = CONFIG_MQTT_MQTT_PORT;
     topic = CONFIG_MQTT_TOPIC;
+    rzero = CONFIG_CO2_RZERO;
+    resistor = CONFIG_CO2_RESISTOR;
 
     Log.info("CFG=%s", "Static config loaded");
   #endif
@@ -194,17 +259,25 @@ void initConfig(void) {
     delay(1000);
     analogWrite(bPort, 0);
 
+  _gPort = gPort;
+  _bPort = bPort;
+  _rPort = rPort; 
   wifi = WrapperWiFi(ssid, password, ip, subnet, dns);
   measure = WrapperMeasure(rPort, gPort, bPort, dataPort);
-            Log.info("Temp: %f C", measure.getTemp());
+      Log.info("Temp: %f C", measure.getTemp());
       Log.info("Hum: %f %", measure.getHum());
-      Log.info("CO2: %f", measure.getCO2());
+  if(rzero == 0 || isnan(rzero)) {
+    Log.info("Starting Calibration");
+    rzero = calibrate(rPort, gPort, bPort);
+    Log.info("RZERO is set to: %f", rzero);
+    Config::saveRZero(rzero);
+    
+  }
+  mq.setRZero(rzero);
 }
 
 void handleEvents(void) {
-  #ifdef CONFIG_ENABLE_WEBCONFIG
-    webServer.handle();
-  #endif
+  webserver_step();
   threadController.run();
 }
 
@@ -213,7 +286,7 @@ void setup(void) {
   LoggerInit loggerInit = LoggerInit(115200);
   
   initConfig();
-
+  ota = WrapperOTA();
   
 
   statusThread.onRun(statusInfo);
@@ -221,31 +294,41 @@ void setup(void) {
   threadController.add(&statusThread);
 
   measureThread.onRun(measureStep);
-  //measureThread.setInterval(100);
+  measureThread.setInterval(500);
   threadController.add(&measureThread);
 
   connectionThread.onRun(writeResults);
   connectionThread.setInterval(5000);
   threadController.add(&connectionThread);
   
+
   writingThread.onRun(writeResults);
   writingThread.setInterval(15000);
   
   
   
   wifi.begin();
+    webServer = WrapperWebconfig();
+    Log.info("Starting WebServer");
+    webServer.begin();
+    ota.begin(Config::getConfig()->wifi.hostname);
+  //configThread.onRun(webserver_step);
+  //configThread.setInterval(1000);
+  //threadController.add(&configThread);
+  
   client.setKeepAliveInterval(20000);
   client.setId(mqtt_client);
-  #ifdef CONFIG_ENABLE_WEBCONFIG
-    webServer = WrapperWebconfig();
-    webServer.begin();
-    Log.info("Starting WebServer");
-  #endif
-    
+
   threadController.run();
   pinMode(LED, OUTPUT);   // LED pin as output.
   Log.info("HEAP=%i", ESP.getFreeHeap());
 }
+
+void webserver_step() {
+  
+  webServer.handle();
+  ota.handle();
+  }
 
 void loop(void) {
   handleEvents();

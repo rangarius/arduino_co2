@@ -26,7 +26,9 @@ WrapperWiFi::WrapperWiFi(const char* ssid, const char* password, const byte ip[4
 
 void WrapperWiFi::begin(void) {
   Log.debug("WrapperWiFi(ssid=\"%s\", password=\"%s\")", _ssid, _password);
+WiFi.disconnect(true);
 
+delay(1000);
   Log.info("Connecting to WiFi %s", _ssid);
   
   WiFi.mode(WIFI_STA);
@@ -38,32 +40,18 @@ void WrapperWiFi::begin(void) {
   }
   
   WiFi.begin(_ssid, _password);
-
-  int connection = 1;
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Log.error("WiFi Connection Failed! Rebooting...");
-    delay(5000);
-    connection = 0;
-    break;
-    //ESP.restart();
-  }
-  if (!WiFi.isConnected()) {
-      boolean result = WiFi.softAP("CO2-Config-2", "testtest");
-        if(result == true)
-          {
-            Log.info("Ready AP");
-          }
-          else
-          {
-            Log.info("Failed AP!");
-          }
-      IPAddress myIP = WiFi.softAPIP();
-      Serial.print("AP IP address: ");
-      Serial.println(myIP);
-    } else {
-      WiFi.softAPdisconnect (true);
+  int retry = 0;
+  if(WiFi.waitForConnectResult() != WL_CONNECTED) {
+      WiFi.disconnect(true);
+      WiFi.mode(WIFI_AP);
+      WiFi.softAP("CO2-Config-2", "testtest");
+      Log.info("Not connection to Wifi, falling back to AP only");
+  } else {
       Log.info("Connected successfully, IP address: %s", WiFi.localIP().toString().c_str());
-      }
+    }
+  
+
+
 }
 
 bool WrapperWiFi::status(void) {

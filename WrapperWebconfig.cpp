@@ -57,6 +57,13 @@ String WrapperWebconfig::escape(uint16_t text) {
   sprintf(buf, "%u", text);
   return String(buf);  
 }
+
+String WrapperWebconfig::escape(float text) {
+  char buf[6];
+  sprintf (buf, "%f", text);
+  return String(buf);  
+}
+
 String WrapperWebconfig::escape(uint32_t text) {
   char buf[10];
   sprintf(buf, "%u", text);
@@ -136,6 +143,14 @@ void WrapperWebconfig::changeConfig(void) {
       cfg->mqtt.mqtt_port = argValue.toInt();
       if (cfg->mqtt.mqtt_port == 0)
         cfg->mqtt.mqtt_port = 1883;
+    } else if (argName == "co2_rzero") {
+      cfg->co2.rzero = argValue.toFloat();
+      if (cfg->co2.rzero == 0)
+        cfg->co2.rzero = 0;
+    } else if (argName == "co2_resistor") {
+      cfg->co2.resistor = argValue.toInt();
+      if (cfg->co2.resistor == 0)
+        cfg->co2.resistor = 10;
     }else if (argName == "saveRestart") {
       restart = true;
     } else if (argName == "loadStatic") {
@@ -311,7 +326,12 @@ String WrapperWebconfig::config(void) {
     groupContent += textTemplate("MQTT Port","",  "mqtt-mqtt_port", escape(cfg->mqtt.mqtt_port), "1883", 4);
 
     html += groupTemplate("MQTT", groupContent);
-  
+    
+    groupContent = "";
+    groupContent += textTemplate("RZERO","",  "co2_rzero", escape(cfg->co2.rzero), "0", 8);
+    groupContent += textTemplate("RESISTOR","",  "co2_resistor", escape(cfg->co2.resistor), "10", 4);
+   
+    html += groupTemplate("MQTT", groupContent);
 
   groupContent = "";
   groupContent += "<div class=\"form-group\">";

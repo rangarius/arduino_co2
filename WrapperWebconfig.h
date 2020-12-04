@@ -41,6 +41,7 @@ class WrapperWebconfig {
       escape(uint8_t text),
       escape(uint16_t text),
       escape(uint32_t text),
+      escape(float text),
       ipToString(ConfigIP ip),
       
       htmlTemplate(String title, String content),

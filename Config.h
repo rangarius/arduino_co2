@@ -16,6 +16,7 @@ class Config {
     static byte *cfg2ip(ConfigIP ip);
     static ConfigIP ip2cfg(const byte ip[4]);
     static void logConfig(void);
+    static float saveRZero(float rzero);
   private:
     static void initConfig(void);
     static ConfigStruct _cfgStruct;

@@ -33,6 +33,8 @@ void Config::initConfig(void) {
       strncpy(_cfgStruct.mqtt.mqtt_client, "CJS3-01-02.000", 32);
       strncpy(_cfgStruct.mqtt.topic, "/nodes/CJS3/01/01.022/", 64);
       _cfgStruct.mqtt.mqtt_port = 1883;
+      _cfgStruct.co2.rzero = 0;
+      _cfgStruct.co2.resistor = 10;
       EEPROM.end();
       saveConfig();
       Log.info("Configuration at 0x%x with v%i (v%i expected), new configuration created", CONFIG_START_ADDRESS, version, CONFIG_ACTIVE_VERSION);
@@ -82,6 +84,9 @@ void Config::loadStaticConfig(void) {
   strlcpy(_cfgStruct.mqtt.mqtt_client, CONFIG_MQTT_MQTT_CLIENT, sizeof(_cfgStruct.mqtt.mqtt_client));
   strlcpy(_cfgStruct.mqtt.topic, CONFIG_MQTT_TOPIC, sizeof(_cfgStruct.mqtt.topic));
   _cfgStruct.mqtt.mqtt_port = CONFIG_MQTT_MQTT_PORT;
+
+  _cfgStruct.co2.rzero = CONFIG_CO2_RZERO;
+  _cfgStruct.co2.resistor = CONFIG_CO2_RESISTOR;
   
   saveConfig();
   Log.info("CFG=%s", "loadStaticConfig END");
@@ -106,12 +111,24 @@ void Config::logConfig(void) {
   Log.debug(" dataPort=%i", _cfgStruct.ports.dataPort);
 
   Log.debug("+MQTT+");
-  Log.debug("  mqttServer=%i", _cfgStruct.mqtt.mqtt_server);
-  Log.debug("  mqttClient=%i", _cfgStruct.mqtt.mqtt_client);
+  Log.debug("  mqttServer=%s", _cfgStruct.mqtt.mqtt_server);
+  Log.debug("  mqttClient=%s", _cfgStruct.mqtt.mqtt_client);
   Log.debug("  mqttPort=%i", _cfgStruct.mqtt.mqtt_port);
-  Log.debug("  mqttTopic=%i", _cfgStruct.mqtt.topic);
+  Log.debug("  mqttTopic=%s", _cfgStruct.mqtt.topic);
+  
+  Log.debug("+CO2+");
+  Log.debug("  RZERO=%f", _cfgStruct.co2.rzero);
+  Log.debug("  RESISTOR=%i", _cfgStruct.co2.resistor);
+
+  
   
 }
+
+float Config::saveRZero(float rzero) {
+  _cfgStruct.co2.rzero = rzero;
+  saveConfig();
+  Log.info("Calibration done; Config saved");
+  }
 
 byte *Config::cfg2ip(ConfigIP ipStruct) {
   Log.verbose("CFG=cfg2ip: %i.%i.%i.%i", ipStruct.a, ipStruct.b, ipStruct.c, ipStruct.d);
