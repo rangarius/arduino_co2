@@ -67,9 +67,13 @@ void statusInfo(void) {
 void measureStep() {
       float temp = measure.getTemp();
     float hum = measure.getHum();
-    if(isnan(hum)) hum = 50;
-    if(isnan(temp)) temp = 22;
-  float co2 = mq.getCorrectedPPM(temp, hum);
+    float co2;
+    if(isnan(hum)){
+      co2 = mq.getPPM();
+      } else {
+      co2 = mq.getCorrectedPPM(temp-2, hum);     
+        }
+   
   
   
         Log.debug("temp: %f", temp);
@@ -119,21 +123,30 @@ float calibrate(int rPort, int gPort, int bPort) {
     float rzero;
     int lnumReadings = 10;
     int lreadIndex = 0;
-    int lreadings[lnumReadings];
+    float lreadings[lnumReadings];
     float ltotal;
     
-    for(int i = 0; i <= 480; i++) {
+    for(int i = 0; i <= 1000; i++) {
           ltotal = ltotal - lreadings[lreadIndex];
-          lreadings[lreadIndex] = mq.getCorrectedRZero(temp, hum); 
+          if(isnan(temp)) {
+              lreadings[lreadIndex] = mq.getRZero();  
+              
+            } else {
+              lreadings[lreadIndex] = mq.getCorrectedRZero(temp-2, hum);    
+              }
+
           ltotal = ltotal + lreadings[lreadIndex]; 
           lreadIndex = lreadIndex + 1; 
           if (lreadIndex >= lnumReadings) {
             lreadIndex = 0;
           }
-          rzero = ltotal / lnumReadings;
-      rzero = mq.getCorrectedRZero(temp, hum);
+
+          
+         
+  
       delay(100);
       }
+       rzero = ltotal / lnumReadings;
     return rzero;
   }
 
@@ -154,9 +167,7 @@ if (wifi_status) {
     float temp = measure.getTemp();
     float hum = measure.getHum();
     
-    Log.debug("co2: %f", averageCO2);
-      Log.debug("temp: %f", temp);
-        Log.debug("hum: %f", hum);
+
               //client.loop();
                  // JSON OBJECT Erstellen und mit Messwerten laden
       StaticJsonDocument<256> doc;
@@ -294,7 +305,7 @@ void setup(void) {
   threadController.add(&statusThread);
 
   measureThread.onRun(measureStep);
-  measureThread.setInterval(500);
+  measureThread.setInterval(1500);
   threadController.add(&measureThread);
 
   connectionThread.onRun(writeResults);
