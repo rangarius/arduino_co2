@@ -121,32 +121,43 @@ float calibrate(int rPort, int gPort, int bPort) {
           float temp = measure.getTemp();
     float hum = measure.getHum();
     float rzero;
-    int lnumReadings = 10;
-    int lreadIndex = 0;
-    float lreadings[lnumReadings];
-    float ltotal;
-    
-    for(int i = 0; i <= 1000; i++) {
-          ltotal = ltotal - lreadings[lreadIndex];
+    float cali_ppm;
+    float RMax;
+
+    while(cali_ppm < ATMOCO2) {
+
           if(isnan(temp)) {
-              lreadings[lreadIndex] = mq.getRZero();  
+              rzero = mq.getRZero();  
               
             } else {
-              lreadings[lreadIndex] = mq.getCorrectedRZero(temp-2, hum);    
+              rzero = mq.getCorrectedRZero(temp-2, hum);    
               }
 
-          ltotal = ltotal + lreadings[lreadIndex]; 
-          lreadIndex = lreadIndex + 1; 
-          if (lreadIndex >= lnumReadings) {
-            lreadIndex = 0;
+
+          float RCurrent = rzero;
+          if ((((999 * RMax) + RCurrent) / 1000) > RMax) {
+            RMax = (((999 * RMax) + RCurrent) / 1000); 
           }
+          Log.debug("Rmax: %f", RMax);
+          mq.setRZero(RMax);
+          if(isnan(temp)) {
+            cali_ppm = mq.getPPM();
+            }
+          else {
+            cali_ppm = mq.getCorrectedPPM(temp, hum);
+            }
+      Log.debug("ppm: %f", cali_ppm);
+      Log.debug("rzero: %f", RCurrent);
+      delay(20);
+      }
+
 
           
          
   
-      delay(100);
-      }
-       rzero = ltotal / lnumReadings;
+      
+      
+
     return rzero;
   }
 

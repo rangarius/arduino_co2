@@ -10,8 +10,8 @@
 /*------------------------------------------------*/
 /*Logging level*/
 
-#define LOGLEVEL LOG_LEVEL_INFOS
-//#define LOGLEVEL LOG_LEVEL_DEBUG
+//#define LOGLEVEL LOG_LEVEL_INFOS
+#define LOGLEVEL LOG_LEVEL_DEBUG
 //#define LOGLEVEL LOG_LEVEL_VERBOSE
 
 /*------------------------------------------------*/
