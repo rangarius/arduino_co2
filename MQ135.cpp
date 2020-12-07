@@ -26,6 +26,7 @@ v1.0 - First release
 
 MQ135::MQ135(uint8_t pin) {
   _pin = pin;
+  _RLOAD = 1.0;
 }
 
 
@@ -52,7 +53,7 @@ float MQ135::getCorrectionFactor(float t, float h) {
 /**************************************************************************/
 float MQ135::getResistance() {
   int val = analogRead(_pin);
-  return ((1023./(float)val) * 5. - 1.)*RLOAD;
+  return ((1023./(float)val) * 5. - 1.)*_RLOAD;
 }
 
 /**************************************************************************/
@@ -126,4 +127,8 @@ float MQ135::getCorrectedRZero(float t, float h) {
 void MQ135::setRZero(float rzero) {
   
   _RZERO = rzero;
+  }
+
+void MQ135::setRLOAD(float rload) {
+  _RLOAD = rload;
   }

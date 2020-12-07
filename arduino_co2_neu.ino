@@ -282,8 +282,8 @@ void initConfig(void) {
     rzero = calibrate(rPort, gPort, bPort);
     Log.info("RZERO is set to: %f", rzero);
     Config::saveRZero(rzero);
-    
   }
+  mq.setRLOAD(resistor);
   mq.setRZero(rzero);
 }
 

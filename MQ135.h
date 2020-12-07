@@ -22,7 +22,7 @@ v1.0 - First release
 #endif
 
 /// The load resistance on the board
-#define RLOAD 1.0
+
 /// Calibration resistance at atmospheric CO2 level
 #define RZERO 1000.00
 /// Parameters for calculating ppm of CO2 from sensor resistance
@@ -52,6 +52,8 @@ class MQ135 {
   float getRZero();
   float getCorrectedRZero(float t, float h);
   void setRZero(float rzero);
+  void setRLOAD(float rload);
   float _RZERO;
+  float _RLOAD;
 };
 #endif
