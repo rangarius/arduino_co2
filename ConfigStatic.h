@@ -40,6 +40,9 @@
 
 #define CONFIG_CO2_RZERO 0
 #define CONFIG_CO2_RESISTOR 10
+
+#define CONFIG_OFFSET_TEMP 0
+#define CONFIG_OFFSET_HUM 0
 /*------------------------------------------------*/
 /*Main configuration*/
 //You can leave it empty and override it via the web interface on port 80

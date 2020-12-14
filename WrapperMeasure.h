@@ -15,7 +15,8 @@ class WrapperMeasure {
     WrapperMeasure(int rPort, int bPort,int gPort,int dataPort);
     void
       begin(),
-      setColor(float co2);
+      setColor(float co2),
+      setOffsets(float temp_offset, float hum_offset);
     float
       getCO2(void),
       getTemp(void),
@@ -29,6 +30,8 @@ class WrapperMeasure {
     int _gPort;
     int _bPort;
     int _dataPort;
+    float _humOffset;
+    float _tempOffset;
     float _ppm;
     float LEDgreen;
     float LEDred;

@@ -51,11 +51,18 @@ typedef struct {
   } ConfigCo2;
 
 typedef struct {
+  float temp;
+  float hum;
+  char spacer[32];
+  } ConfigOffset;
+
+typedef struct {
   uint8_t version;
   ConfigWifi wifi;
   ConfigMqtt mqtt;
   ConfigPort ports;
   ConfigCo2 co2;
+  ConfigOffset offset;
 } ConfigStruct;
 
 #endif

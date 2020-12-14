@@ -40,6 +40,7 @@ class WrapperWebconfig {
       escape(char* text),
       escape(uint8_t text),
       escape(uint16_t text),
+      escape(int16_t text),
       escape(uint32_t text),
       escape(float text),
       ipToString(ConfigIP ip),

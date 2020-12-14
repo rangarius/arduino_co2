@@ -57,11 +57,15 @@ String WrapperWebconfig::escape(uint16_t text) {
   sprintf(buf, "%u", text);
   return String(buf);  
 }
-
-String WrapperWebconfig::escape(float text) {
+String WrapperWebconfig::escape(int16_t text) {
   char buf[6];
-  sprintf (buf, "%f", text);
+  sprintf(buf, "%u", text);
   return String(buf);  
+}
+String WrapperWebconfig::escape(float text) {
+  char buffer[10];
+  dtostrf(text, 3,3,buffer);
+  return String(buffer);  
 }
 
 String WrapperWebconfig::escape(uint32_t text) {
@@ -151,6 +155,14 @@ void WrapperWebconfig::changeConfig(void) {
       cfg->co2.resistor = argValue.toInt();
       if (cfg->co2.resistor == 0)
         cfg->co2.resistor = 10;
+    } else if (argName == "offset_temp") {
+      cfg->offset.temp = argValue.toFloat();
+      if (cfg->offset.temp == 0)
+        cfg->offset.temp = 0;
+    } else if (argName == "offset_hum") {
+      cfg->offset.hum = argValue.toFloat();
+      if (cfg->offset.hum == 0)
+        cfg->offset.hum = 0;
     }else if (argName == "saveRestart") {
       restart = true;
     } else if (argName == "loadStatic") {
@@ -331,8 +343,14 @@ String WrapperWebconfig::config(void) {
     groupContent += textTemplate("RZERO","",  "co2_rzero", escape(cfg->co2.rzero), "0", 8);
     groupContent += textTemplate("RESISTOR","",  "co2_resistor", escape(cfg->co2.resistor), "10", 4);
    
-    html += groupTemplate("MQTT", groupContent);
+    html += groupTemplate("RESISTOR", groupContent);
 
+    groupContent = "";
+    groupContent += textTemplate("Temperatur Offset","",  "offset_temp", escape(cfg->offset.temp), "0", 5);
+    groupContent += textTemplate("Humidity Offset","",  "offset_hum", escape(cfg->offset.hum), "0", 5);
+   
+    html += groupTemplate("OFFSETS", groupContent);
+    
   groupContent = "";
   groupContent += "<div class=\"form-group\">";
   groupContent +=   "<label class=\"col-md-4 control-label\" for=\"save\"></label>";

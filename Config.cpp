@@ -11,6 +11,7 @@ void Config::saveConfig() {
   //EEPROM.commit(); (done with end())
   EEPROM.end();
   _cfgLoaded = false;
+  
 }
 
 void Config::initConfig(void) {
@@ -35,6 +36,8 @@ void Config::initConfig(void) {
       _cfgStruct.mqtt.mqtt_port = 1883;
       _cfgStruct.co2.rzero = 0;
       _cfgStruct.co2.resistor = 10;
+      _cfgStruct.offset.temp = 0;
+      _cfgStruct.offset.hum = 0;
       EEPROM.end();
       saveConfig();
       Log.info("Configuration at 0x%x with v%i (v%i expected), new configuration created", CONFIG_START_ADDRESS, version, CONFIG_ACTIVE_VERSION);
@@ -87,7 +90,8 @@ void Config::loadStaticConfig(void) {
 
   _cfgStruct.co2.rzero = CONFIG_CO2_RZERO;
   _cfgStruct.co2.resistor = CONFIG_CO2_RESISTOR;
-  
+  _cfgStruct.offset.temp = CONFIG_OFFSET_TEMP;
+  _cfgStruct.offset.hum = CONFIG_OFFSET_HUM;
   saveConfig();
   Log.info("CFG=%s", "loadStaticConfig END");
 }
@@ -120,7 +124,9 @@ void Config::logConfig(void) {
   Log.debug("  RZERO=%f", _cfgStruct.co2.rzero);
   Log.debug("  RESISTOR=%i", _cfgStruct.co2.resistor);
 
-  
+    Log.debug("+TEMP/HUM+");
+  Log.debug("  TEMP_OFFSET=%f", _cfgStruct.offset.temp);
+  Log.debug("  HUM_OFFSET=%f", _cfgStruct.offset.hum);
   
 }
 

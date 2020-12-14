@@ -71,7 +71,7 @@ void measureStep() {
     if(isnan(hum)){
       co2 = mq.getPPM();
       } else {
-      co2 = mq.getCorrectedPPM(temp-2, hum);     
+      co2 = mq.getCorrectedPPM(temp, hum);     
         }
    
   
@@ -130,7 +130,7 @@ float calibrate(int rPort, int gPort, int bPort) {
               rzero = mq.getRZero();  
               
             } else {
-              rzero = mq.getCorrectedRZero(temp-2, hum);    
+              rzero = mq.getCorrectedRZero(temp, hum);    
               }
 
 
@@ -138,6 +138,7 @@ float calibrate(int rPort, int gPort, int bPort) {
           if ((((999 * RMax) + RCurrent) / 1000) > RMax) {
             RMax = (((999 * RMax) + RCurrent) / 1000); 
           }
+          Log.debug("Rload: %f", mq._RLOAD);
           Log.debug("Rmax: %f", RMax);
           mq.setRZero(RMax);
           if(isnan(temp)) {
@@ -166,12 +167,11 @@ void writeResults() {
   wifi_status = wifi.status();
   Log.debug("Wifi Status: %i", wifi_status);
 if (wifi_status) {
-  while(!client.connected()) {
     client.connect(mqtt_server, mqtt_port);
      Log.info("Connected: %b", client.connected());
      delay(1000);
       if(!client.connected()) {
-        break;
+        return;
        }
         else {
            
@@ -192,7 +192,7 @@ if (wifi_status) {
       Log.info("CO2: %f", averageCO2);
       Log.info("Topic %s", topic); 
 
-      client.beginMessage(topic,measureJson(doc), true);
+      client.beginMessage(topic,measureJson(doc), true, 1, false);
       serializeJson(doc, client);
       if(client.endMessage()) {
         Log.info("published");
@@ -201,8 +201,10 @@ if (wifi_status) {
         Log.info("publish went wrong");
         }
      }
+
+} else {
+  wifi.begin();
   }
-}
   }
 
 
@@ -224,6 +226,8 @@ void initConfig(void) {
   uint16_t dataPort;
   uint16_t resistor;
   float rzero;
+  float temp_offset;
+  float hum_offset;
 
 
   #ifdef CONFIG_ENABLE_WEBCONFIG
@@ -245,6 +249,8 @@ void initConfig(void) {
     rzero = cfg->co2.rzero;
     resistor = cfg->co2.resistor;
     topic = cfg->mqtt.topic;
+    temp_offset = cfg->offset.temp;
+        hum_offset = cfg->offset.hum;
     Log.info("CFG=%s", "EEPROM config loaded");
     Config::logConfig();
   #else
@@ -268,7 +274,8 @@ void initConfig(void) {
     topic = CONFIG_MQTT_TOPIC;
     rzero = CONFIG_CO2_RZERO;
     resistor = CONFIG_CO2_RESISTOR;
-
+    temp_offset = CONFIG_OFFSET_TEMP;
+    hum_offset = CONFIG_OFFSET_HUM;
     Log.info("CFG=%s", "Static config loaded");
   #endif
     analogWrite(rPort, 1024);
@@ -286,16 +293,19 @@ void initConfig(void) {
   _rPort = rPort; 
   wifi = WrapperWiFi(ssid, password, ip, subnet, dns);
   measure = WrapperMeasure(rPort, gPort, bPort, dataPort);
+    measure.setOffsets(temp_offset, hum_offset);
       Log.info("Temp: %f C", measure.getTemp());
       Log.info("Hum: %f %", measure.getHum());
+  mq.setRLOAD(resistor);
+
+  mq.setRZero(rzero);
   if(rzero == 0 || isnan(rzero)) {
     Log.info("Starting Calibration");
     rzero = calibrate(rPort, gPort, bPort);
     Log.info("RZERO is set to: %f", rzero);
     Config::saveRZero(rzero);
   }
-  mq.setRLOAD(resistor);
-  mq.setRZero(rzero);
+
 }
 
 void handleEvents(void) {
@@ -325,7 +335,7 @@ void setup(void) {
   
 
   writingThread.onRun(writeResults);
-  writingThread.setInterval(15000);
+  writingThread.setInterval(5000);
   
   
   

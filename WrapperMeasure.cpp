@@ -39,9 +39,18 @@ void WrapperMeasure::setColor(float co2) {
 float WrapperMeasure::getTemp() {
       //TEMPERATUR & LUFTFEUCHTE AUSLESEN
 
-    return dht.readTemperature();
+    return (dht.readTemperature() + _tempOffset);
   }
 
 float WrapperMeasure::getHum() {
-      return dht.readHumidity();
+      return (dht.readHumidity() + _humOffset);
+  }
+
+
+void WrapperMeasure::setOffsets(float temp_offset, float hum_offset) {
+  Log.debug("Setting Offsets");
+  Log.debug("Temp: %f",temp_offset);
+    Log.debug("Hum: %f",hum_offset);
+  _humOffset = hum_offset;
+  _tempOffset = temp_offset;
   }
