@@ -35,4 +35,4 @@ Python intallieren
 Terminal: pip install esptool
 
 
-esptool.py --port COM3 write_flash 0x0 arduino_co2.ino.nodemcu.bin
+esptool.py write_flash 0x0 arduino_co2.ino.nodemcu.bin
