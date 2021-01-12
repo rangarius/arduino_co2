@@ -28,3 +28,11 @@ zusätzlich Benötigte Bibliotheken:
 * ArduinoJSON > 6.0.0
 * MqttClient
 * ARDUINO LOGGING <- ist als ZIP enthalten 
+
+### Command für Bin
+Python intallieren
+
+Terminal: pip install esptool
+
+
+esptool.py --port COM3 write_flash 0x0 arduino_co2.ino.nodemcu.bin
