@@ -307,6 +307,12 @@ void initConfig(void) {
   }
 
 }
+void webserver_step() {
+  
+  webServer.handle();
+  ota.handle();
+  }
+
 
 void handleEvents(void) {
   webserver_step();
@@ -355,12 +361,6 @@ void setup(void) {
   pinMode(LED, OUTPUT);   // LED pin as output.
   Log.info("HEAP=%i", ESP.getFreeHeap());
 }
-
-void webserver_step() {
-  
-  webServer.handle();
-  ota.handle();
-  }
 
 void loop(void) {
   handleEvents();
