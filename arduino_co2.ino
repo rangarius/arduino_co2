@@ -95,8 +95,8 @@ void measureStep() {
 
 
     float LEDblue = 0;
-    float LEDred = (1024 * ((_ppm - 500) / 500)) / 3;
-    float LEDgreen = 1024 - ((1024 * ((_ppm - 500) / 500)) / 3);
+    float LEDred = (1024 * ((_ppm - 150) / 500)) / 3;
+    float LEDgreen = 1024 - ((1024 * ((_ppm - 150) / 500)) / 3);
     
     if (LEDred > 1024) LEDred = 1024;
     if (LEDred < 0) LEDred = 0; 
