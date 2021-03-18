@@ -20,8 +20,8 @@ void WrapperMeasure::setColor(float co2) {
 
 
     LEDblue = 0;
-    LEDred = (1024 * ((_ppm - 500) / 500)) / 3;
-    LEDgreen = 1024 - ((1024 * ((_ppm - 500) / 500)) / 3);
+    LEDred = (1024 * ((_ppm - 300) / 500)) / 3;
+    LEDgreen = 1024 - ((1024 * ((_ppm - 300) / 500)) / 3);
     
     if (LEDred > 1024) LEDred = 1024;
     if (LEDred < 0) LEDred = 0; 
