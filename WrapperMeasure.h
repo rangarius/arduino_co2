@@ -2,7 +2,7 @@
 #define WrapperMeasure_h
 
 #include "BaseHeader.h"
-#include <PubSubClient.h>
+//#include <PubSubClient.h>
 #include <stdlib.h>
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
